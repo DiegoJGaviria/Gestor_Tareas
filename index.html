@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SGC - Sistema de Gestión de Calidad</title>
+    <link rel="stylesheet" href="estilos.css">
+    <style>
+        :root { --bg-dark: #0f172a; --card-bg: #1e293b; --accent: #38bdf8; --success: #34d399; --text: #f8fafc; --border: #334155; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-dark); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        /* Navegación por pestañas */
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px; flex-wrap: wrap; }
+        .tab-btn { background: var(--card-bg); color: var(--text); border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .tab-btn.active, .tab-btn:hover { background: var(--accent); color: var(--bg-dark); }
+
+        /* Contenedores de vistas */
+        .view-section { display: none; background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .view-section.active { display: block; }
+
+        /* Dashboard Tarjetas (KPIs) */
+        .kpi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .kpi-card { background: linear-gradient(135deg, #0f172a 0%, #111827 100%); padding: 20px; border-radius: 10px; border-left: 4px solid var(--accent); box-shadow: 0 8px 20px rgba(0,0,0,0.18); }
+        .kpi-card h3 { margin: 0; font-size: 0.86rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; }
+        .kpi-card p { font-size: 1.7rem; margin: 10px 0 6px 0; font-weight: bold; color: var(--success); }
+        .kpi-card small { color: #cbd5e1; display: block; line-height: 1.4; }
+        .dashboard-summary { background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 18px; }
+
+        /* Tablas, Filtros y Formularios */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        th { background: #0f172a; color: var(--accent); }
+        input, select { width: 100%; padding: 10px; margin: 8px 0 15px 0; border-radius: 6px; background: #0f172a; color: white; border: 1px solid #475569; box-sizing: border-box; }
+        
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .subtarea-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: stretch; }
+        .subtarea-row input, .subtarea-row select { flex: 1; margin: 0; min-width: 0; }
+        .subtarea-row .btn-eliminar { flex: 0 0 42px; height: 42px; min-height: 42px; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin: 8px 0 15px 0; border-radius: 6px; font-weight: bold; }
+        .btn-agregar { background: var(--success); color: #0f172a; border: none; padding: 0.5rem 1rem; cursor: pointer; border-radius: 6px; font-weight: bold; }
+        .helper-text { font-size: 0.85rem; color: #94a3b8; margin-top: -6px; margin-bottom: 8px; }
+        .btn-accion { background: var(--accent); color: var(--bg-dark); border: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .logout-btn { background: #ef4444; color: white; margin-left: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h1 style="margin: 0;">Sistema de Gestión de Calidad (SGC)</h1>
+            <button class="tab-btn logout-btn" onclick="cerrarSesion()">Cerrar Sesión</button>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="cambiarVista('dashboard', this)">📊 Dashboard</button>
+            <button class="tab-btn" onclick="cambiarVista('registro', this)">➕ Registrar Actividad</button>
+            <button class="tab-btn" onclick="cambiarVista('tareas', this)">📋 Módulo de Tareas</button>
+            <button class="tab-btn" onclick="cambiarVista('reportes', this)">📈 Reportes Avanzados</button>
+        </div>
+
+        <div id="dashboard" class="view-section active">
+            <h2>Panel de Control Gerencial</h2>
+            <div class="dashboard-summary">
+                <strong>Resumen del sistema:</strong> aquí puedes ver el avance general de las actividades registradas y el estado operativo del módulo.
+            </div>
+            <div class="kpi-container">
+                <div class="kpi-card">
+                    <h3>Progreso Promedio Global</h3>
+                    <p id="kpiProgreso">0%</p>
+                    <small id="kpiDetalle">Sin registros aún</small>
+                </div>
+                <div class="kpi-card">
+                    <h3>Total Actividades Padre</h3>
+                    <p id="kpiTotalAct">0</p>
+                    <small>Macroactividades registradas</small>
+                </div>
+                <div class="kpi-card">
+                    <h3>Estado del Sistema</h3>
+                    <p id="kpiEstado">Operativo</p>
+                    <small>Listo para registrar nuevas actividades</small>
+                </div>
+                <div class="kpi-card">
+                    <h3>Última Actualización</h3>
+                    <p id="kpiFecha">--</p>
+                    <small>Fecha de carga del panel</small>
+                </div>
+            </div>
+            <label style="font-weight: bold;">Cumplimiento Promedio General del Sistema:</label>
+            <div style="background: #0f172a; border-radius: 8px; overflow: hidden; height: 25px; margin-top: 10px; border: 1px solid var(--border);">
+                <div id="progressBar" style="width: 0%; height: 100%; background: var(--success); transition: width 0.5s;"></div>
+            </div>
+            <span id="progressText" style="display: block; margin-top: 8px; font-weight: bold; color: var(--success);">0% Completado</span>
+        </div>
+
+        <div id="registro" class="view-section">
+            <h2>Registrar Nueva Actividad y Subactividades</h2>
+            <form id="qualityForm">
+                <label>Nombre de la Macroactividad:</label>
+                <input type="text" id="nombreActividad" placeholder="Ej: Auditoría de Procesos Q3" required>
+                <div class="helper-text">Escribe el nombre de la macroactividad que deseas registrar.</div>
+
+                <label>Solicitado por:</label>
+                <select id="solicitadoPor" required><option value="">Seleccione un solicitante...</option></select>
+
+                <label>Responsable Principal de la Actividad:</label>
+                <select id="responsable" required><option value="">Seleccione un responsable...</option></select>
+
+                <label>Macroproceso:</label>
+                <select id="macroSelect" required><option value="">Seleccione un macroproceso...</option></select>
+
+                <label>Proceso:</label>
+                <select id="procesoSelect" required disabled><option value="">Seleccione primero un macroproceso...</option></select>
+
+                <fieldset style="border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-top: 15px;">
+                    <legend style="color: var(--accent); font-weight: bold;">Subactividades (Tareas de Ejecución)</legend>
+                    <div class="helper-text">Agrega una o más subactividades para completar la estructura.</div>
+                    <div id="subactividadesContainer"></div>
+                    <button type="button" class="btn-agregar" id="btnAddSubtarea">+ Agregar Subactividad</button>
+                </fieldset>
+
+                <button type="submit" class="btn-accion" style="margin-top: 20px; width: 100%; padding: 12px; font-size: 1rem;">Guardar Estructura Completa</button>
+            </form>
+        </div>
+
+        <div id="tareas" class="view-section">
+            <h2>Módulo de Almacenamiento y Consulta de Tareas</h2>
+            <div style="overflow-x: auto;">
+                <table id="tablaTareas">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Macroactividad</th>
+                            <th>Macroproceso / Proceso</th>
+                            <th>Solicita / Responsable</th>
+                            <th>Avance Global</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="5" style="text-align: center;">Cargando tareas almacenadas...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="reportes" class="view-section">
+            <h2>Reportes y Porcentajes de Avance Avanzados</h2>
+            
+            <div class="filters-grid">
+                <div>
+                    <label style="font-size: 0.85rem; color: #94a3b8;">Filtrar por Macroproceso:</label>
+                    <select id="filtroMacro" onchange="aplicarFiltrosReporte()">
+                        <option value="">Todos los Macroprocesos</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; color: #94a3b8;">Filtrar por Proceso:</label>
+                    <select id="filtroProceso" onchange="aplicarFiltrosReporte()">
+                        <option value="">Todos los Procesos</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; color: #94a3b8;">Filtrar por Responsable:</label>
+                    <select id="filtroResponsable" onchange="aplicarFiltrosReporte()">
+                        <option value="">Todos los Responsables</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.85rem; color: #94a3b8;">Filtrar por Creador (Solicitado por):</label>
+                    <select id="filtroCreador" onchange="aplicarFiltrosReporte()">
+                        <option value="">Todos los Creadores</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-bottom: 15px; font-weight: bold;">
+                <span id="statTotalItems">Actividades filtradas: 0</span>
+                <span id="statPromedioFiltrado" style="color: var(--success);">Promedio de avance del filtro: 0%</span>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table id="tablaReportes">
+                    <thead>
+                        <tr>
+                            <th>Macroactividad</th>
+                            <th>Macroproceso / Proceso</th>
+                            <th>Solicitante / Creador</th>
+                            <th>Responsable</th>
+                            <th>Subactividades</th>
+                            <th>% Avance de Cumplimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="6" style="text-align: center;">Generando reporte...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
